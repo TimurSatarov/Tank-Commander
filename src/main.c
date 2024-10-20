@@ -6,6 +6,12 @@
 #include "tank.h"
 #include "graphics.h"
 
+void renderBorders(SDL_Renderer* renderer) {
+    SDL_SetRenderDrawColor(renderer, 190, 0, 0, 255); // Red color for borders
+    SDL_Rect borderRect = { 0, 0, 800, 600 }; // Full window size
+    SDL_RenderDrawRect(renderer, &borderRect); // Draw the outline
+}
+
 int main(int argc, char* argv[]) {
     
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -19,7 +25,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Battle City",
+    SDL_Window* window = SDL_CreateWindow("Tank Comander",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         800, 600, SDL_WINDOW_SHOWN);
     if (!window) {
@@ -50,10 +56,19 @@ int main(int argc, char* argv[]) {
         SDL_Quit();
         return -1;
     }
+    SDL_Texture* bulletTexture = IMG_LoadTexture(renderer, "assets/bullet_red.png");
+    if (!bulletTexture) {
+        printf("Failed to load tank texture! IMG_Error: %s\n", IMG_GetError());
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return -1;
+    }
    
     Tank tank;
     initTank(&tank, 400, 300, tankBodyTexture, tankHeadTexture);
 
+    Bullet bullets[MAX_BULLETS] = {0};
     
     SDL_Event e;
     bool quit = false;
@@ -62,18 +77,32 @@ int main(int argc, char* argv[]) {
             if (e.type == SDL_QUIT) {
                 quit = true;
             }
+
+            if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE){
+                fireBullet(&tank, bullets, bulletTexture);
+            }
         }
 
-        // Handle key states for movement
+        
         const Uint8* keyState = SDL_GetKeyboardState(NULL);
         moveTank(&tank, keyState);
+        moveBullets(bullets);
+
+
+        if(tank.x < 0) tank.x = 0;
+        if(tank.y < 0) tank.y = 0;
+        if(tank.x > 750) tank.x = 750;
+        if(tank.y > 550) tank.y = 550;    
 
         
-        SDL_SetRenderDrawColor(renderer, 70, 130, 170, 255); // Black background
+        SDL_SetRenderDrawColor(renderer, 70, 130, 180, 255); // Black background
         SDL_RenderClear(renderer);
+
+        renderBorders(renderer);
 
 
         renderTank(renderer, &tank);
+        renderBullets(renderer, bullets);
 
         
         SDL_RenderPresent(renderer);

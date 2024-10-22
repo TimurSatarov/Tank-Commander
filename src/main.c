@@ -41,35 +41,31 @@ int main(int argc, char* argv[]) {
 
 
     SDL_Texture* tankBodyTexture = IMG_LoadTexture(renderer, "assets/tank_body_red.png");
-    if (!tankBodyTexture) {
-        printf("Failed to load tank texture! IMG_Error: %s\n", IMG_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
     SDL_Texture* tankHeadTexture = IMG_LoadTexture(renderer, "assets/tank_turret_red.png");
-    if (!tankHeadTexture) {
-        printf("Failed to load tank texture! IMG_Error: %s\n", IMG_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
     SDL_Texture* bulletTexture = IMG_LoadTexture(renderer, "assets/bullet_red.png");
-    if (!bulletTexture) {
-        printf("Failed to load tank texture! IMG_Error: %s\n", IMG_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
+    SDL_Texture* wallTexture = IMG_LoadTexture(renderer, "assets/wall.png");
+    //enemy texture dir
+    SDL_Texture* enemyBodyTexture = IMG_LoadTexture(renderer, "assets/EnemyAssets/enemy_tank_body.png");
+    SDL_Texture* enenyHeadTexture = IMG_LoadTexture(renderer, "assets/EnemyAssets/enemy_tank_turret.png");
+    
+    const int numEnemies = 3; // num of enemies
    
     Tank tank;
-    initTank(&tank, 400, 300, tankBodyTexture, tankHeadTexture);
+    EnemyTank enemies[numEnemies];
+    initTank(&tank, 400, 500, tankBodyTexture, tankHeadTexture);
+
+
+    for(int i = 0;i < numEnemies; i++){
+        initEnemyTank(&enemies[i], 100 * (i + 1), 100, enemyBodyTexture, enenyHeadTexture);
+    }
+
 
     Bullet bullets[MAX_BULLETS] = {0};
-    
+
+    Obstacle obstacles[2] = {
+        {{400, 300, 50, 50}, wallTexture},  // Position and dimensions
+        {{450, 300, 50, 50}, wallTexture}
+    };
     SDL_Event e;
     bool quit = false;
     while (!quit) {
@@ -86,17 +82,31 @@ int main(int argc, char* argv[]) {
         
         const Uint8* keyState = SDL_GetKeyboardState(NULL);
         moveTank(&tank, keyState);
-        moveBullets(bullets);
 
 
         if(tank.x < 0) tank.x = 0;
         if(tank.y < 0) tank.y = 0;
         if(tank.x > 750) tank.x = 750;
-        if(tank.y > 550) tank.y = 550;    
+        if(tank.y > 550) tank.y = 550;
+
+        moveBullets(bullets,obstacles, 2);
+        for(int i = 0;i < MAX_BULLETS; i++){
+            if(bullets[i].active && checkCollision(bullets[i].x, bullets[i].y, obstacles[i].rect)){
+                bullets[i].active = false;
+                printf("Bullet hit the walla at (%f, %f)\n", bullets[i].x, bullets[i].y);
+            }
+        }
 
         
         SDL_SetRenderDrawColor(renderer, 70, 130, 180, 255); // Black background
         SDL_RenderClear(renderer);
+
+        for(int i = 0; i < 2; i++){
+            SDL_RenderCopy(renderer, obstacles[i].texture, NULL, &obstacles[i].rect);
+        }
+        for(int i = 0;i < numEnemies;i++){
+            renderEnemyTank(renderer, enemies);
+        }
 
         renderBorders(renderer);
 

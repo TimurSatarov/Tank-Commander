@@ -1,9 +1,9 @@
 #Check Point
-# Battle City Tank Game
+# Tank-Commander Tank Game
 
 ## Overview
 
-Battle City is a 2D tank battle game inspired by classic arcade games. Players control a tank that can move in various directions, fire bullets.
+Tank-Commander is a 2D tank battle game inspired by classic arcade games. Players control a tank that can move in various directions, fire bullets.
 
 ## Features
 

@@ -36,7 +36,7 @@ typedef struct{
 }Bullet;
 
 void initTank(Tank* tank, float x, float y, SDL_Texture* bodyTexture, SDL_Texture* headTexture);
-void moveTank(Tank* tank, const Uint8* keyState);
+void moveTank(Tank* tank, const Uint8* keyState, Obstacle obstacles[], int numObstacles, EnemyTank enemies[], int numEnemies);
 void renderTank(SDL_Renderer* renderer, Tank* tank);
 
 //bullet func
@@ -45,6 +45,7 @@ void moveBullets(Bullet bullets[], Obstacle obstacle[], int numObstacles);
 void renderBullets(SDL_Renderer* renderer, Bullet bullet[]);
 
 bool checkCollision(float bulletX, float bulletY, SDL_Rect wall); 
+bool checkRectCollision(SDL_Rect a, SDL_Rect b);
 void initEnemyTank(EnemyTank *enemy, float x, float y, SDL_Texture* bodyTexture, SDL_Texture* headTexture);
 void updateEnemy(EnemyTank* enemy, Tank* playerTank);
 void renderEnemyTank(SDL_Renderer* renderer, EnemyTank* enemy);

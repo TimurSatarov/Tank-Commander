@@ -54,3 +54,6 @@ Tank-Commander is a 2D tank battle game inspired by classic arcade games. Player
     ###### A / D: Rotate the tank's gun
     ###### Space: Fire bullets
 
+## Demonstration: 
+    here:
+    ![makegif GIF](assets/makegif.gif)

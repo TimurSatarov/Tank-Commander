@@ -16,10 +16,10 @@ void initTank(Tank* tank, float x, float y, SDL_Texture* bodyTexture, SDL_Textur
     tank->bodyTexture = bodyTexture;
     tank->headTexture = headTexture;
 }
-
+// setting of moving tank
 void moveTank(Tank* tank, const Uint8* keyState, Obstacle obstacles[], int numObstacles, EnemyTank enemies[], int numEnemies) {
-    float speed = 2.0f;
-    float backSpeed = 1.0f;
+    float speed = 2.5f;
+    float backSpeed = 1.5f;
 
     float newX = tank->x;
     float newY = tank->y;
@@ -46,8 +46,8 @@ void moveTank(Tank* tank, const Uint8* keyState, Obstacle obstacles[], int numOb
 
     for(int i = 0; i < numEnemies; i++) {
         if (enemies[i].active) {
-            SDL_Rect enemyRect = {(int)enemies[i].tank.x, (int)enemies[i].tank.y, 50, 30};
-            if (checkRectCollision(tankRect, enemyRect)) {
+            SDL_Rect enemyRect = {(int)enemies[i].tank.x, (int)enemies[i].tank.y, 50, 36};
+            if (checkRectCollision(tankRect, enemyRect)) {          
                 canMove = false;
                 break;
             }
@@ -79,11 +79,11 @@ void moveTank(Tank* tank, const Uint8* keyState, Obstacle obstacles[], int numOb
 
 }
 
-
+// render the Tank
 void renderTank(SDL_Renderer* renderer, Tank* tank) {
-    // Render body
+    
     SDL_Rect bodyRect = { (int)tank->x, (int)tank->y, TANK_BODY_WIDTH, TANK_BODY_HEIGHT };
-    SDL_RenderCopyEx(renderer, tank->bodyTexture, NULL, &bodyRect, tank->rotation + 90, NULL, SDL_FLIP_NONE);
+    SDL_RenderCopyEx(renderer, tank->bodyTexture, NULL, &bodyRect, tank->rotation + 90, NULL, SDL_FLIP_NONE);// add to 90 degree because the colision model look to different side
 
     float offsetX = -2.5f;  // X offset from the center of the body
     float offsetY = 0.0f;  // Y offset from the center of the body
@@ -98,14 +98,14 @@ void renderTank(SDL_Renderer* renderer, Tank* tank) {
         TANK_HEAD_WIDTH,
         TANK_HEAD_HEIGHT
     };
-    // Correct rotation point of head
+    // for centralize of turrets of tank
     SDL_Point headCenter = {(TANK_HEAD_WIDTH / 2), (TANK_HEAD_HEIGHT / 2) + 10};
 
-
+    // render body and turret of tank
     SDL_RenderCopyEx(renderer, tank->headTexture, NULL, &headRect, tank->headRotation + 90, &headCenter, SDL_FLIP_NONE);
 }
 
-
+// the logic of firing 
 void fireBullet(Tank* tank, Bullet bullets[],SDL_Texture* bulletTexture){
     for(int i = 0;i < MAX_BULLETS; i++){
         if(!bullets[i].active){
@@ -114,13 +114,14 @@ void fireBullet(Tank* tank, Bullet bullets[],SDL_Texture* bulletTexture){
             bullets[i].dx = 10.0f * cos(tank -> headRotation * M_PI / 180.0f);
             bullets[i].dy = 10.0f * sin(tank -> headRotation * M_PI / 180.0f);
             bullets[i].active = true;
+            bullets[i].firedByEnemy = false;
             bullets[i].bulletTexture = bulletTexture;
             break;
         }
     }
 }
 
-
+// logic of bullets 
 void moveBullets(Bullet bullets[], Obstacle obstacle[], int numObstacles){
     for(int i = 0; i < MAX_BULLETS; i++){
         if(bullets[i].active){
@@ -166,19 +167,28 @@ void renderBullets(SDL_Renderer* renderer, Bullet bullets[]){
 
 int score = 0;  // score
 
-void checkBulletEnemyCollision(Bullet bullets[], EnemyTank enemies[], int numEnemies, int* score) {
+void checkBulletEnemyCollision(Bullet bullets[], EnemyTank enemies[], int numEnemies, Tank* tank, int* score) {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
-            for (int j = 0; j < numEnemies; j++) {
-                if (enemies[j].active) {
-                    SDL_Rect enemyRect = { (int)enemies[j].tank.x, (int)enemies[j].tank.y, 50, 36 };
-                    if (checkCollision(bullets[i].x, bullets[i].y, enemyRect)) {
-                        bullets[i].active = false;
-                        enemies[j].active = false;
-                        (*score)++;  // Increase score
-                        printf("Enemy hit! Score: %d\n", *score);
-                        break;
+            if(!bullets[i].firedByEnemy){
+                for(int j = 0; j < numEnemies; j++){
+                    if (enemies[j].active) {
+                        SDL_Rect enemyRect = { (int)enemies[j].tank.x, (int)enemies[j].tank.y, TANK_BODY_WIDTH, TANK_BODY_HEIGHT };
+                        if (checkCollision(bullets[i].x, bullets[i].y, enemyRect)) {
+                            bullets[i].active = false;
+                            enemies[j].active = false;
+                            (*score)++;
+                            printf("Enemy hit! Score: %d\n", *score);
+                            break;
+                        }
                     }
+                }
+            }
+            else{
+                SDL_Rect playerRect = { (int)tank->x, (int)tank->y, TANK_BODY_WIDTH, TANK_BODY_HEIGHT };
+                if (checkCollision(bullets[i].x, bullets[i].y, playerRect)) {
+                    bullets[i].active = false;
+                    printf("Player hit by enemy bullet!\n");
                 }
             }
         }
@@ -197,14 +207,11 @@ void initEnemyTank(EnemyTank *enemy, float x, float y, SDL_Texture* bodyTexture,
 void updateEnemy(EnemyTank* enemy, Tank* playerTank) {
     if (!enemy->active) return;
 
-    // Calculate the direction to the player tank
     float dx = playerTank->x - enemy->tank.x;
     float dy = playerTank->y - enemy->tank.y;
 
-    // Calculate the distance (length) between the enemy and player tanks
     float length = sqrt(dx * dx + dy * dy);
 
-    // Normalize the direction vector (dx, dy)
     dx /= length;
     dy /= length;
 
@@ -219,16 +226,62 @@ void updateEnemy(EnemyTank* enemy, Tank* playerTank) {
     enemy->tank.headRotation = enemy->tank.rotation;
 }
 
+void moveEnemies(EnemyTank enemies[], int numEnemies, Tank* playerTank) {
+    for (int i = 0; i < numEnemies; i++) {
+        if (enemies[i].active) {
+            float dx = playerTank->x - enemies[i].tank.x;
+            float dy = playerTank->y - enemies[i].tank.y;
+            float distance = sqrt(dx * dx + dy * dy);
+
+            if (distance < 300) { // If player is within 300 pixels enemies tank wiil be attack 
+                // Calculate direction of tank
+                enemies[i].tank.rotation = atan2(dy, dx) * 180.0f / M_PI;
+                enemies[i].tank.headRotation = enemies[i].tank.rotation;
+
+                enemies[i].tank.x += 1.0f * cos(enemies[i].tank.rotation * M_PI / 180.0f);
+                enemies[i].tank.y += 1.0f * sin(enemies[i].tank.rotation * M_PI / 180.0f);
+            } else {
+                // will add a random direction of enenmies tank move 
+            }
+        }
+    }
+}
+
+
+
+// the enenmies fire logic
+void enemyFire(EnemyTank* enemy, Bullet bullets[], int numBullets, Tank* playerTank, SDL_Texture* bulletTexture){
+    const int firingRange = 150.0f; // the distans of enemies tank of firing
+
+    float dx = playerTank->x - enemy->tank.x;
+    float dy = playerTank->y - enemy->tank.y;
+    float distance = sqrt(dx * dx + dy * dy);
+
+    if(distance < firingRange){
+        for(int i= 0; i < numBullets; i++){
+            if(!bullets[i].active){
+                bullets[i].x = enemy->tank.x;
+                bullets[i].y = enemy->tank.y;
+                bullets[i].dx = 10.0f * cos(enemy->tank.headRotation * M_PI / 180.0f);
+                bullets[i].dy = 10.0f * sin(enemy->tank.headRotation * M_PI / 180.0f);
+                bullets[i].active = true;
+                bullets[i].firedByEnemy = true;
+                bullets[i].bulletTexture = bulletTexture;
+                break;
+            }
+        }
+    }
+}
+
 
 void renderEnemyTank(SDL_Renderer* renderer, EnemyTank* enemy) {
-    if (enemy->active) {
-        // Render the tank's body with an extra 90-degree rotation
-        SDL_Rect bodyRect = {(int)enemy->tank.x, (int)enemy->tank.y, TANK_BODY_WIDTH, TANK_BODY_HEIGHT};
-        SDL_RenderCopyEx(renderer, enemy->tank.bodyTexture, NULL, &bodyRect, enemy->tank.rotation, NULL, SDL_FLIP_NONE);
 
-        // Render the tank's head with an extra 90-degree rotation
-        SDL_Rect headRect = {(int)enemy->tank.x+ 2, (int)enemy->tank.y - 10, TANK_HEAD_WIDTH, TANK_HEAD_HEIGHT};
+    if (enemy->active) {
+        SDL_Rect bodyRect = {(int)enemy->tank.x, (int)enemy->tank.y, TANK_BODY_WIDTH + 2, TANK_BODY_HEIGHT};
+        SDL_RenderCopyEx(renderer, enemy->tank.bodyTexture, NULL, &bodyRect, enemy->tank.rotation + 90, NULL, SDL_FLIP_NONE);
+
+        SDL_Rect headRect = {(int)enemy->tank.x + 4, (int)enemy->tank.y - 10, TANK_HEAD_WIDTH, TANK_HEAD_HEIGHT};
         SDL_Point headCenter = {(TANK_HEAD_WIDTH / 2), (TANK_HEAD_HEIGHT / 2) + 10};
-        SDL_RenderCopyEx(renderer, enemy->tank.headTexture, NULL, &headRect, enemy->tank.headRotation, &headCenter, SDL_FLIP_NONE);
+        SDL_RenderCopyEx(renderer, enemy->tank.headTexture, NULL, &headRect, enemy->tank.headRotation + 90, &headCenter, SDL_FLIP_NONE);
     }
 }

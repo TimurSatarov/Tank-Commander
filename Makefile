@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-Iinclude -lSDL2 -lSDL2_image -lm  
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
-TARGET=battleCity
+TARGET=tankCommander
 
 all: $(TARGET)
 
